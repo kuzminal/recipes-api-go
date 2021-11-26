@@ -1,0 +1,123 @@
+basePath: /
+consumes:
+- application/json
+host: localhost:8080
+info:
+  contact:
+    email: kuzmin.al35@gmail.com
+    name: Алексей Кузьмин
+  description: Это небольшой проект на Go с рецептами.
+  title: Recipes API
+  version: 1.0.0
+paths:
+  /recipes:
+    get:
+      description: Returns list of recipes
+      operationId: listRecipes
+      tags:
+      - recipes
+    post:
+      description: Create a new recipe
+      operationId: newRecipe
+      parameters:
+      - in: query
+        name: id
+        type: string
+        x-go-name: ID
+      - in: query
+        name: name
+        type: string
+        x-go-name: Name
+      - in: query
+        items:
+          type: string
+        name: tags
+        type: array
+        x-go-name: Tags
+      - in: query
+        items:
+          type: string
+        name: ingredients
+        type: array
+        x-go-name: Ingredients
+      - in: query
+        items:
+          type: string
+        name: instructions
+        type: array
+        x-go-name: Instructions
+      - format: date-time
+        in: query
+        name: publishedAt
+        type: string
+        x-go-name: PublishedAt
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful operation
+        "400":
+          description: Invalid input
+      tags:
+      - recipes
+  /recipes/{id}:
+    delete:
+      description: Delete an existing recipe
+      operationId: deleteRecipe
+      parameters:
+      - description: ID of the recipe
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful operation
+        "404":
+          description: Invalid recipe ID
+      tags:
+      - recipes
+    put:
+      description: Update an existing recipe
+      operationId: updateRecipe
+      parameters:
+      - description: ID of the recipe
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful operation
+        "400":
+          description: Invalid input
+        "404":
+          description: Invalid recipe ID
+      tags:
+      - recipes
+  /recipes/search:
+    get:
+      description: Search recipes based on tags
+      operationId: findRecipe
+      parameters:
+      - description: recipe tag
+        in: query
+        name: tag
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful operation
+      tags:
+      - recipes
+produces:
+- application/json
+schemes:
+- http
+swagger: "2.0"
