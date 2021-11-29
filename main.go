@@ -89,6 +89,7 @@ func main() {
 	auth := router.Group("/")
 	auth.Use(authHandler.AuthMiddleware())
 	{
+		router.POST("/signout", authHandler.SignOutHandler)
 		auth.POST("/recipes", recipesHandler.NewRecipeHandler)
 		auth.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
 		//router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
