@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	//"github.com/rs/xid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -29,13 +31,14 @@ func NewAuthHandler(ctx context.Context, collection *mongo.Collection) *AuthHand
 
 func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenValue := c.GetHeader("Authorization")
-		//tokenValue = strings.Replace(tokenValue, "Bearer ", "", 1)
+		session := sessions.Default(c)
+		sessionToken := session.Get("token")
+
 		claims := &Claims{}
 		if tokenSecret == "" {
 			tokenSecret = "eUbP9shywUygMx7u"
 		}
-		tkn, err := jwt.ParseWithClaims(tokenValue, claims,
+		tkn, err := jwt.ParseWithClaims(sessionToken.(string), claims,
 			func(token *jwt.Token) (interface{}, error) {
 				return []byte(tokenSecret), nil
 			})
@@ -44,6 +47,13 @@ func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 		}
 		if tkn == nil || !tkn.Valid {
 			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+
+		if sessionToken == nil {
+			c.JSON(http.StatusForbidden, gin.H{
+				"message": "Not logged",
+			})
+			c.Abort()
 		}
 		c.Next()
 	}
@@ -72,14 +82,22 @@ func (handler *AuthHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+// swagger:operation POST /signin auth signIn
+// Login with username and password
+// ---
+// produces:
+// - application/json
+// responses:
+//     '200':
+//         description: Successful operation
+//     '401':
+//         description: Invalid credentials
 func (handler *AuthHandler) SignInHandler(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	//h := sha256.New()
 
 	cur := handler.collection.FindOne(handler.ctx, bson.M{
 		"username": user.Username,
@@ -118,6 +136,14 @@ func (handler *AuthHandler) SignInHandler(c *gin.Context) {
 		Token:   tokenString,
 		Expires: expirationTime,
 	}
+
+	//sessionToken := xid.New().String()
+	sessionToken := jwtOutput.Token
+	session := sessions.Default(c)
+	session.Set("username", user.Username)
+	session.Set("token", sessionToken)
+	session.Save()
+
 	c.JSON(http.StatusOK, jwtOutput)
 }
 
