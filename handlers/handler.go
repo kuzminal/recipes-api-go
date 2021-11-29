@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	"github.com/golang-jwt/jwt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,6 +20,15 @@ type RecipesHandler struct {
 	collection  *mongo.Collection
 	ctx         context.Context
 	redisClient *redis.Client
+}
+
+type Claims struct {
+	Username string `json:"username"`
+	jwt.StandardClaims
+}
+type JWTOutput struct {
+	Token   string    `json:"token"`
+	Expires time.Time `json:"expires"`
 }
 
 func NewRecipesHandler(ctx context.Context, collection *mongo.Collection, redisClient *redis.Client) *RecipesHandler {
@@ -218,7 +228,9 @@ func (handler *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 //     '404':
 //         description: Invalid recipe ID
 func (handler *RecipesHandler) GetRecipeHandler(c *gin.Context) {
-	id := c.Query("id")
+	id := c.Params.ByName("id")
+
+	//id := c.Query("id")
 	objectId, _ := primitive.ObjectIDFromHex(id)
 	cur := handler.collection.FindOne(handler.ctx, bson.M{
 		"_id": objectId,

@@ -38,7 +38,10 @@ var mongoDbCollection = os.Getenv("MONGODB_COLLECTION")
 
 var recipesHandler *handlers.RecipesHandler
 
+var authHandler *handlers.AuthHandler
+
 func init() {
+	os.Setenv("JWT_SECRET", "eUbP9shywUygMx7u")
 	if mongoDbUri == "" {
 		mongoDbUri = "mongodb://localhost:27017/"
 	}
@@ -61,18 +64,31 @@ func init() {
 		DB:       0,
 	})
 
-	status := redisClient.Ping()
-	log.Println(status)
+	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
+		log.Fatal(err)
+	}
+
 	recipesHandler = handlers.NewRecipesHandler(ctx, collection, redisClient)
+	collectionUsers := client.Database(mongoDbDatabase).Collection("users")
+	authHandler = handlers.NewAuthHandler(ctx, collectionUsers)
 }
 
 func main() {
 	router := gin.Default()
-	router.POST("/recipes", recipesHandler.NewRecipeHandler)
+	router.POST("/signin", authHandler.SignInHandler)
+	router.POST("/refresh", authHandler.RefreshHandler)
 	router.GET("/recipes", recipesHandler.ListRecipesHandler)
-	router.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
-	//router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
-	router.PUT("/recipes:id", recipesHandler.UpdateRecipeHandler)
-	router.DELETE("/recipes:id", recipesHandler.DeleteRecipeHandler)
+	router.POST("/users", authHandler.CreateUser)
+
+	auth := router.Group("/")
+	auth.Use(authHandler.AuthMiddleware())
+	{
+		auth.POST("/recipes", recipesHandler.NewRecipeHandler)
+		auth.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
+		//router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
+		auth.PUT("/recipes:id", recipesHandler.UpdateRecipeHandler)
+		auth.DELETE("/recipes:id", recipesHandler.DeleteRecipeHandler)
+	}
+
 	router.Run()
 }

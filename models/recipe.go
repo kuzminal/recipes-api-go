@@ -14,3 +14,8 @@ type Recipe struct {
 	Instructions []string           `json:"instructions" bson:"instructions"`
 	PublishedAt  time.Time          `json:"publishedAt" bson:"published_at"`
 }
+
+type User struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
